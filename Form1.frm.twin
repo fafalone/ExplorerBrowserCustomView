@@ -1,0 +1,169 @@
+[FormDesignerId("6BA3CD84-3010-49A6-89FF-666F59A3862F")]
+[ClassId("86DE621F-09E0-48CF-BAA7-441EF3DD0759")]
+[InterfaceId("AB482BDD-C13E-437D-BEB3-3C0E3EE63616")]
+[EventInterfaceId("51232839-BB17-4523-B271-7A7918DD20C4")]
+Class Form1
+    Attribute VB_Name = "Form1"
+    Attribute VB_GlobalNameSpace = False
+    Attribute VB_Creatable = False
+    Attribute VB_PredeclaredId = True
+    Attribute VB_Exposed = False
+    Option Explicit
+    '(API declares removed; taken over by WinDevLib)
+    Private pEBrowse As ExplorerBrowser
+    Private pResFolder As IResultsFolder
+    Private lprf As LongPtr
+    
+    Private nMatch As Long
+    
+    Private mSpec As String
+     
+    Private Sub Command1_Click()
+    If (pResFolder Is Nothing) Then
+        Debug.Print "Error->No resultsfolder"
+        Exit Sub
+    End If
+    If nMatch Then pResFolder.RemoveAll
+    nMatch = 0
+    mSpec = Text2.Text
+    DoSearch
+    End Sub
+    
+    Private Sub Form_Load()
+    Dim lpDocs As LongPtr
+    SHGetKnownFolderPath FOLDERID_Documents, 0&, 0&, lpDocs
+    Text1.Text = LPWSTRtoStr(lpDocs)
+    
+    Set pEBrowse = New ExplorerBrowser
+    Dim lFlag As EXPLORER_BROWSER_OPTIONS
+    Dim tFS As FOLDERSETTINGS
+    Dim rcFrame As RECT
+    Dim rcEB As RECT
+    Dim pfv As IFolderView2
+    Dim pColMgr As IColumnManager
+    
+    tFS.ViewMode = FVM_DETAILS
+    tFS.fFlags = FWF_AUTOARRANGE Or FWF_NOWEBVIEW
+    
+    lFlag = EBO_NAVIGATEONCE
+    
+    GetClientRect Frame1.hWnd, rcFrame
+    With rcEB
+        .Left = 4
+        .Top = 15
+        .Right = rcFrame.Right - 4
+        .Bottom = rcFrame.Bottom - 4
+    End With
+    
+    pEBrowse.Initialize Frame1.hWnd, rcEB, tFS
+    pEBrowse.SetOptions lFlag
+    pEBrowse.FillFromObject Nothing, EBF_NODROPTARGET
+    pEBrowse.GetCurrentView IID_IFolderView2, pfv
+    If (pfv Is Nothing) = False Then
+    '    'OPTIONAL
+        'Customize which columns appear: fill uCol with however many columns (PROPERTYKEY's from mPKEY)
+        ' you want, then be sure to change the second argument in SetColumns to the number of keys
+        Dim uCol() As PROPERTYKEY
+        ReDim uCol(2)
+        Set pColMgr = pfv
+        uCol(0) = PKEY_ItemNameDisplay
+        uCol(1) = PKEY_ItemFolderPathDisplay
+        uCol(2) = PKEY_Image_Dimensions
+        pColMgr.SetColumns uCol(0), 3&
+        pfv.GetFolder IID_IResultsFolder, pResFolder
+    Else
+        Debug.Print "Error->No folderview"
+    End If
+     
+    End Sub
+ 
+    Private Sub DoSearch()
+    
+    Dim psi As IShellItem
+    Dim piesi As IEnumShellItems
+    Dim isia As IShellItemArray
+    Dim pidl As LongPtr
+    Dim pFile As IShellItem
+    Dim lpName As LongPtr, lpFolder As LongPtr
+    Dim sName As String, sFolder As String
+    Dim sDisp As String
+    Dim pcl As Long
+    Dim sTarget As String
+    Dim sStart As String
+    Dim lAtr As SFGAO_Flags
+    
+    pidl = ILCreateFromPathW(StrPtr(Text1.Text))
+    SHCreateItemFromIDList pidl, IID_IShellItem, psi
+    psi.BindToHandler 0&, BHID_EnumItems, IID_IEnumShellItems, piesi
+    
+    Do While piesi.Next(1&, pFile, pcl) = S_OK
+        pFile.GetDisplayName SIGDN_DESKTOPABSOLUTEPARSING, lpFolder
+        pFile.GetAttributes SFGAO_FOLDER Or SFGAO_DROPTARGET Or SFGAO_STREAM, lAtr
+        If ((lAtr And SFGAO_FOLDER) = SFGAO_FOLDER) And ((lAtr And SFGAO_STREAM) = 0&) Then 'folder but not zip
+            If (lAtr And SFGAO_DROPTARGET) = SFGAO_DROPTARGET Then
+                ScanDeep pFile
+            End If
+        Else
+            pFile.GetDisplayName SIGDN_DESKTOPABSOLUTEPARSING, lpName
+            sName = LPWSTRtoStr(lpName)
+            sDisp = Right$(sName, Len(sName) - InStrRev(sName, "\"))
+            If PathMatchSpecW(StrPtr(sDisp), StrPtr(mSpec)) Then
+                Debug.Print "Found match: " & sName
+                pResFolder.AddItem pFile
+            End If
+        End If
+    Loop
+    Call CoTaskMemFree(pidl)
+    
+    End Sub
+    Private Sub ScanDeep(psiLoc As IShellItem)
+    'for recursive scan
+    Dim psi As IShellItem
+    Dim piesi As IEnumShellItems
+    Dim pFile As IShellItem
+    Dim lpName As LongPtr
+    Dim sName As String
+    Dim sDisp As String
+    Dim pcl As Long
+    Dim sTarget As String
+    Dim lAtr As SFGAO_Flags
+    
+    
+    psiLoc.BindToHandler 0&, BHID_EnumItems, IID_IEnumShellItems, piesi
+    Do While piesi.Next(1&, pFile, pcl) = S_OK
+        pFile.GetAttributes SFGAO_FOLDER Or SFGAO_DROPTARGET Or SFGAO_STREAM, lAtr
+        If ((lAtr And SFGAO_FOLDER) = SFGAO_FOLDER) And ((lAtr And SFGAO_STREAM) = 0&) Then 'folder but not zip
+            If (lAtr And SFGAO_DROPTARGET) = SFGAO_DROPTARGET Then
+                ScanDeep pFile
+            End If
+        Else
+            pFile.GetDisplayName SIGDN_DESKTOPABSOLUTEPARSING, lpName
+            sName = LPWSTRtoStr(lpName)
+            sDisp = Right$(sName, Len(sName) - InStrRev(sName, "\"))
+            If PathMatchSpecW(StrPtr(sDisp), StrPtr(mSpec)) Then
+                Debug.Print "Found match: " & sName
+                pResFolder.AddItem pFile
+            End If
+        End If
+    Loop
+    End Sub
+    
+    Private Sub Form_Resize()
+    Frame1.Width = Me.ScaleWidth - 10
+    Frame1.Height = Me.ScaleHeight - 100
+    Dim rcFrame As RECT
+    Dim lp As LongPtr
+    GetClientRect Frame1.hWnd, rcFrame
+    If (pEBrowse Is Nothing = False) Then
+        #If Win64 Then
+        Dim rc As RECT
+        rc.Left = 4: rc.Top = 15: rc.Right = rcFrame.Right - 4: rc.Bottom = rcFrame.Bottom - 4
+        pEBrowse.SetRect lp, rc
+        #Else
+        pEBrowse.SetRect lp, 4, 15, rcFrame.Right - 4, rcFrame.Bottom - 4
+        #End If
+    End If
+    End Sub
+    
+
+End Class

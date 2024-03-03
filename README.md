@@ -3,6 +3,8 @@ Display search results or other custom file set in IExplorerBrowser
 
 This is a port of [my VB6 project](https://www.vbforums.com/showthread.php?865485) that uses `IResultsFolder` to display search results in an `IExplorerBrowser` frame on your form:
 
+Update (03 Mar 2024): .twinproj has been updated to use a more recent version of WinDevLib (formerly tbShellLib) due to errors in the package tB did not raise at the time this project was released.
+
 ![image](https://github.com/fafalone/ExplorerBrowserCustomView/assets/7834493/28aa8be9-948e-4509-9c0d-625b0e1323c3)
 
 ### About

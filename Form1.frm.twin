@@ -12,8 +12,7 @@ Class Form1
     '(API declares removed; taken over by WinDevLib)
     Private pEBrowse As ExplorerBrowser
     Private pResFolder As IResultsFolder
-    Private lprf As LongPtr
-    
+ 
     Private nMatch As Long
     
     Private mSpec As String
@@ -60,7 +59,7 @@ Class Form1
     pEBrowse.FillFromObject Nothing, EBF_NODROPTARGET
     pEBrowse.GetCurrentView IID_IFolderView2, pfv
     If (pfv Is Nothing) = False Then
-    '    'OPTIONAL
+        'OPTIONAL
         'Customize which columns appear: fill uCol with however many columns (PROPERTYKEY's from mPKEY)
         ' you want, then be sure to change the second argument in SetColumns to the number of keys
         Dim uCol() As PROPERTYKEY
@@ -90,7 +89,7 @@ Class Form1
     Dim pcl As Long
     Dim sTarget As String
     Dim sStart As String
-    Dim lAtr As SFGAO_Flags
+    Dim lAtr As SFGAOF
     
     pidl = ILCreateFromPathW(StrPtr(Text1.Text))
     SHCreateItemFromIDList pidl, IID_IShellItem, psi
@@ -126,7 +125,7 @@ Class Form1
     Dim sDisp As String
     Dim pcl As Long
     Dim sTarget As String
-    Dim lAtr As SFGAO_Flags
+    Dim lAtr As SFGAOF
     
     
     psiLoc.BindToHandler 0&, BHID_EnumItems, IID_IEnumShellItems, piesi
@@ -155,13 +154,9 @@ Class Form1
     Dim lp As LongPtr
     GetClientRect Frame1.hWnd, rcFrame
     If (pEBrowse Is Nothing = False) Then
-        #If Win64 Then
         Dim rc As RECT
         rc.Left = 4: rc.Top = 15: rc.Right = rcFrame.Right - 4: rc.Bottom = rcFrame.Bottom - 4
         pEBrowse.SetRect lp, rc
-        #Else
-        pEBrowse.SetRect lp, 4, 15, rcFrame.Right - 4, rcFrame.Bottom - 4
-        #End If
     End If
     End Sub
     
